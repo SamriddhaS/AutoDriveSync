@@ -11,6 +11,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.autosyncdrive.navigation.AppNavHost
+import com.example.autosyncdrive.ui.screens.MainViewModel
+import com.example.autosyncdrive.ui.screens.MainViewModelFactory
 import com.example.autosyncdrive.ui.theme.AutoSyncDriveTheme
 
 class MainActivity : ComponentActivity() {
@@ -19,10 +23,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             AutoSyncDriveTheme {
+                val welcomeViewModel: MainViewModel = viewModel(factory = MainViewModelFactory())
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
+                    AppNavHost(
+                        mainViewModel = welcomeViewModel,
+                        context = this@MainActivity,
+                        modifier=Modifier.padding(innerPadding)
                     )
                 }
             }
@@ -30,18 +36,11 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
 
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview() {
     AutoSyncDriveTheme {
-        Greeting("Android")
+
     }
 }
