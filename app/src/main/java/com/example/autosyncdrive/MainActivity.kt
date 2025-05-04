@@ -11,7 +11,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.autosyncdrive.di.DIModule
 import com.example.autosyncdrive.navigation.AppNavHost
+import com.example.autosyncdrive.repositories.MainRepository
 import com.example.autosyncdrive.ui.screens.MainViewModel
 import com.example.autosyncdrive.ui.screens.MainViewModelFactory
 import com.example.autosyncdrive.ui.theme.AutoSyncDriveTheme
@@ -22,10 +24,14 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             AutoSyncDriveTheme {
-                val welcomeViewModel: MainViewModel = viewModel(factory = MainViewModelFactory())
+
+                val viewModel: MainViewModel = viewModel(
+                    factory = DIModule.provideGoogleDriveViewModelFactory(this@MainActivity)
+                )
+
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     AppNavHost(
-                        mainViewModel = welcomeViewModel,
+                        mainViewModel = viewModel,
                         context = this@MainActivity,
                         modifier=Modifier.padding(innerPadding)
                     )

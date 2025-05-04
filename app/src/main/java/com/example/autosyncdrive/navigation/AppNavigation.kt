@@ -32,7 +32,8 @@ fun AppNavHost(
         composable(route = Routes.HOME_SCREEN){
             HomeScreen(
                 navigateTo = { route -> navController.navigate(route) },
-                modifier = modifier
+                modifier = modifier,
+                mainViewModel = mainViewModel
             )
         }
 
