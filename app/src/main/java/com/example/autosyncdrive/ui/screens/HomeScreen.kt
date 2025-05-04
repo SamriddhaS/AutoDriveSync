@@ -1,131 +1,406 @@
-package com.example.autosyncdrive.ui.screens
+package com.example.autosyncdrive.ui
 
-import android.app.Activity
-import android.widget.Toast
+import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.autosyncdrive.utils.GoogleDriveHelper
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
-import kotlinx.coroutines.launch
+import com.example.autosyncdrive.utils.FileInfo
+import com.example.autosyncdrive.utils.PermissionHandler
+import com.example.autosyncdrive.utils.RequestStoragePermission
+import com.example.autosyncdrive.viewmodels.MainViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
-fun HomeScreen(
-    modifier: Modifier = Modifier,
-    navigateTo:(route:String)->Unit,
-    mainViewModel: MainViewModel,
+fun HomeScreen(viewModel: MainViewModel) {
+    val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val permissionHandler = remember { PermissionHandler(context) }
+
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val tabs = listOf("Google Drive", "Local Storage")
+
+    // Permission request handler
+    RequestStoragePermission(
+        permissionHandler = permissionHandler,
+        onPermissionResult = { granted ->
+            if (granted && !uiState.storageState.hasSelectedDirectory) {
+                // Permissions granted but no directory selected yet
+                // Could auto-launch directory picker here if needed
+            }
+        }
+    )
+
+    // Directory picker launcher
+    val directoryPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        viewModel.handleDirectoryPickerResult(result.resultCode, result.data)
+    }
+
+    // Google Sign-in launcher
+    val signInLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        viewModel.handleSignInResult(result.resultCode, result.data)
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
     ) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .fillMaxHeight()
-    ) {
-        // Collect UI state
-        val uiState by mainViewModel.uiState.collectAsState()
-        val context = LocalContext.current
-        val coroutineScope = rememberCoroutineScope()
-
-        // Activity result launcher for Google Sign-In
-        val signInLauncher = rememberLauncherForActivityResult(
-            contract = ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            mainViewModel.handleSignInResult(result.resultCode, result.data)
-        }
-
-        LaunchedEffect(uiState.error) {
-            uiState.error?.let { error ->
-                Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        // Show toast on successful sign-in
-        LaunchedEffect(uiState.isSignedIn) {
-            if (uiState.isSignedIn && uiState.account != null) {
-                Toast.makeText(context, "Signed in as ${uiState.account?.email}", Toast.LENGTH_SHORT).show()
-            }
-        }
-
-        // Show toast when file is uploaded
-        LaunchedEffect(uiState.uploadStatus) {
-            if (uiState.uploadStatus?.contains("successfully") == true) {
-                Toast.makeText(context, "File uploaded successfully!", Toast.LENGTH_SHORT).show()
-            }
-        }
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(16.dp)
         ) {
-            if (uiState.isLoading) {
-                CircularProgressIndicator()
-                Spacer(modifier = Modifier.height(16.dp))
+            TabRow(selectedTabIndex = selectedTabIndex) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        text = { Text(title) },
+                        selected = selectedTabIndex == index,
+                        onClick = { selectedTabIndex = index }
+                    )
+                }
             }
 
-            if (!uiState.isSignedIn) {
-                Button(
-                    onClick = {
-                        signInLauncher.launch(mainViewModel.getSignInIntent())
-                    }
-                ) {
-                    Text("Connect to Google Drive")
-                }
-            } else {
-                Text("Connected to Google Drive")
-                Text("Account: ${uiState.account?.email ?: "Unknown"}")
+            Spacer(modifier = Modifier.height(16.dp))
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = { mainViewModel.uploadTestFile() },
-                    enabled = !uiState.isLoading
-                ) {
-                    Text("Upload Test file : MyFile.txt")
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                uiState.uploadStatus?.let {
-                    Text(it)
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = {
-                        mainViewModel.signOut()
-                        Toast.makeText(context, "Signed out", Toast.LENGTH_SHORT).show()
-                    }
-                ) {
-                    Text("Sign Out")
-                }
+            when (selectedTabIndex) {
+                0 -> GoogleDriveTab(
+                    uiState = uiState.googleDriveState,
+                    onSignInClick = { signInLauncher.launch(viewModel.getSignInIntent()) },
+                    onSignOutClick = { viewModel.signOut() },
+                    onUploadClick = { viewModel.uploadTestFile() }
+                )
+                1 -> LocalStorageTab(
+                    uiState = uiState.storageState,
+                    onSelectDirectoryClick = {
+                        if (permissionHandler.hasStoragePermissions()) {
+                            directoryPickerLauncher.launch(viewModel.getDirectoryPickerIntent())
+                        } else {
+                            // Launch app settings if permissions were denied
+                            context.startActivity(permissionHandler.getAppSettingsIntent())
+                        }
+                    },
+                    onScanClick = { viewModel.scanSelectedDirectory() }
+                )
             }
         }
-
     }
+}
+
+@Composable
+fun GoogleDriveTab(
+    uiState: com.example.autosyncdrive.viewmodels.GoogleDriveUiState,
+    onSignInClick: () -> Unit,
+    onSignOutClick: () -> Unit,
+    onUploadClick: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            if (uiState.isSignedIn) {
+                Text(
+                    text = "Signed in as: ${uiState.account?.email}",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(onClick = onUploadClick) {
+                        Text("Upload Test File")
+                    }
+
+                    OutlinedButton(onClick = onSignOutClick) {
+                        Text("Sign Out")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (uiState.uploadStatus != null) {
+                    Text(
+                        text = "Status: ${uiState.uploadStatus}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Not signed in to Google Drive",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(onClick = onSignInClick) {
+                        Text("Sign In with Google")
+                    }
+                }
+            }
+
+            if (uiState.error != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Error: ${uiState.error}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun LocalStorageTab(
+    uiState: com.example.autosyncdrive.viewmodels.StorageUiState,
+    onSelectDirectoryClick: () -> Unit,
+    onScanClick: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        if (uiState.isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            // Directory selection status
+            if (uiState.hasSelectedDirectory && uiState.directoryUri != null) {
+                Text(
+                    text = "Selected Directory:",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Text(
+                    text = uiState.directoryUri.toString(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(
+                        onClick = onScanClick
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Scan Directory"
+                        )
+                        Spacer(modifier = Modifier.padding(start = 4.dp))
+                        Text("Scan Directory")
+                    }
+
+                    OutlinedButton(
+                        onClick = onSelectDirectoryClick
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Change Directory"
+                        )
+                        Spacer(modifier = Modifier.padding(start = 4.dp))
+                        Text("Change Directory")
+                    }
+                }
+
+                // Last scan time
+                uiState.lastScanTime?.let { lastScanTime ->
+                    val dateFormat = SimpleDateFormat("MM/dd/yyyy HH:mm:ss", Locale.getDefault())
+                    val formattedDate = dateFormat.format(Date(lastScanTime))
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Last Scan: $formattedDate",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // File list
+                if (uiState.files.isNotEmpty()) {
+                    Text(
+                        text = "Files (${uiState.files.size}):",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    LazyColumn {
+                        items(uiState.files) { fileInfo ->
+                            FileItem(fileInfo)
+                            Divider()
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "No files found in the directory",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            } else {
+                // No directory selected yet
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "No directory selected",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = onSelectDirectoryClick
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Email,
+                            contentDescription = "Select Directory"
+                        )
+                        Spacer(modifier = Modifier.padding(start = 4.dp))
+                        Text("Select Directory")
+                    }
+                }
+            }
+
+            // Error message
+            if (uiState.error != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Error: ${uiState.error}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun FileItem(fileInfo: FileInfo) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+        ) {
+            Text(
+                text = fileInfo.name,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Type: ${fileInfo.mimeType ?: "Unknown"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+
+                Text(
+                    text = formatFileSize(fileInfo.size),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            // Last modified date if available
+            fileInfo.lastModified?.let { lastModified ->
+                val dateFormat = SimpleDateFormat("MM/dd/yyyy HH:mm", Locale.getDefault())
+                val formattedDate = dateFormat.format(Date(lastModified))
+
+                Text(
+                    text = "Modified: $formattedDate",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Format file size in human-readable format
+ */
+fun formatFileSize(size: Long): String {
+    if (size <= 0) return "0 B"
+
+    val units = arrayOf("B", "KB", "MB", "GB", "TB")
+    val digitGroups = (Math.log10(size.toDouble()) / Math.log10(1024.0)).toInt()
+
+    return String.format(
+        "%.1f %s",
+        size / Math.pow(1024.0, digitGroups.toDouble()),
+        units[digitGroups]
+    )
 }

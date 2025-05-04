@@ -13,9 +13,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.autosyncdrive.di.DIModule
 import com.example.autosyncdrive.navigation.AppNavHost
-import com.example.autosyncdrive.repositories.MainRepository
-import com.example.autosyncdrive.ui.screens.MainViewModel
-import com.example.autosyncdrive.ui.screens.MainViewModelFactory
+import com.example.autosyncdrive.viewmodels.MainViewModel
 import com.example.autosyncdrive.ui.theme.AutoSyncDriveTheme
 
 class MainActivity : ComponentActivity() {

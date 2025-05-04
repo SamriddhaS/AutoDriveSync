@@ -2,7 +2,7 @@ package com.example.autosyncdrive.di
 
 import android.content.Context
 import com.example.autosyncdrive.repositories.MainRepository
-import com.example.autosyncdrive.ui.screens.MainViewModelFactory
+import com.example.autosyncdrive.viewmodels.MainViewModelFactory
 
 /**
  * Manual dependency injection for smaller projects

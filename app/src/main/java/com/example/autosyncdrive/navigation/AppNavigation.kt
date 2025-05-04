@@ -1,17 +1,14 @@
 package com.example.autosyncdrive.navigation
 
 import android.content.Context
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.autosyncdrive.ui.screens.HomeScreen
-import com.example.autosyncdrive.ui.screens.MainViewModel
+import com.example.autosyncdrive.ui.HomeScreen
+import com.example.autosyncdrive.viewmodels.MainViewModel
 
 object Routes{
     const val HOME_SCREEN = "home_screen"
@@ -31,9 +28,7 @@ fun AppNavHost(
 
         composable(route = Routes.HOME_SCREEN){
             HomeScreen(
-                navigateTo = { route -> navController.navigate(route) },
-                modifier = modifier,
-                mainViewModel = mainViewModel
+                viewModel = mainViewModel
             )
         }
 

@@ -1,11 +1,18 @@
 package com.example.autosyncdrive.repositories
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.util.Log
+import com.example.autosyncdrive.utils.FileInfo
 import com.example.autosyncdrive.utils.GoogleDriveHelper
+import com.example.autosyncdrive.utils.StorageHelper
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.tasks.Task
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -16,6 +23,7 @@ class MainRepository(
     private val context: Context
 ) {
     private val googleDriveHelper = GoogleDriveHelper(context)
+    private val storageHelper = StorageHelper(context)
     private val TAG = "MainRepository"
 
     // Get sign-in intent
@@ -57,4 +65,42 @@ class MainRepository(
             Result.failure(e)
         }
     }
+
+    // NEW METHODS FOR STORAGE FUNCTIONALITY
+
+    /**
+     * Create directory picker intent
+     */
+    fun getDirectoryPickerIntent(): Intent {
+        return storageHelper.createDirectoryPickerIntent()
+    }
+
+    /**
+     * Process the result from directory picker
+     */
+    fun processDirectorySelection(uri: Uri?): Boolean {
+        return storageHelper.processDirectorySelection(uri)
+    }
+
+    /**
+     * Check if a directory has been selected
+     */
+    fun hasSelectedDirectory(): Boolean {
+        return storageHelper.getSelectedDirectoryUri() != null
+    }
+
+    /**
+     * Get the URI of the selected directory
+     */
+    fun getSelectedDirectoryUri(): Uri? {
+        return storageHelper.getSelectedDirectoryUri()
+    }
+
+    /**
+     * Scan the selected directory and emit files as a Flow
+     */
+    fun scanDirectory(): Flow<List<FileInfo>> = flow {
+        val files = storageHelper.scanDirectory()
+        emit(files)
+    }.flowOn(Dispatchers.IO)
 }
