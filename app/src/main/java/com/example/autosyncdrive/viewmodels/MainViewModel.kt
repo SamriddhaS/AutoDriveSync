@@ -28,6 +28,27 @@ class MainViewModel(
         checkSignInStatus()
         checkStorageDirectoryStatus()
 
+        viewModelScope.launch {
+            repository.observeFiles().collect { files ->
+                Log.d(TAG, "Found ${files.size} files in the directory")
+
+                // Log all files for debugging
+                files.forEach { fileInfo ->
+                    Log.d(TAG, "File: ${fileInfo.name}, Type: ${fileInfo.mimeType}, Size: ${fileInfo.size}")
+                }
+
+                _uiState.update {
+                    it.copy(
+                        storageState = it.storageState.copy(
+                            files = files,
+                            isLoading = false,
+                            lastScanTime = System.currentTimeMillis()
+                        )
+                    )
+                }
+            }
+        }
+
         // If a directory is already selected, scan it on startup
         if (repository.hasSelectedDirectory()) {
             scanSelectedDirectory()
@@ -244,25 +265,9 @@ class MainViewModel(
         }
 
         viewModelScope.launch {
-            repository.scanDirectory().collect { files ->
-                Log.d(TAG, "Found ${files.size} files in the directory")
-
-                // Log all files for debugging
-                files.forEach { fileInfo ->
-                    Log.d(TAG, "File: ${fileInfo.name}, Type: ${fileInfo.mimeType}, Size: ${fileInfo.size}")
-                }
-
-                _uiState.update {
-                    it.copy(
-                        storageState = it.storageState.copy(
-                            files = files,
-                            isLoading = false,
-                            lastScanTime = System.currentTimeMillis()
-                        )
-                    )
-                }
-            }
+            repository.scanDirectory();
         }
+
     }
 }
 

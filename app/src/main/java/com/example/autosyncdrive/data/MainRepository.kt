@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -101,8 +102,55 @@ class MainRepository(
     /**
      * Scan the selected directory and emit files as a Flow
      */
-    fun scanDirectory(): Flow<List<FileInfo>> = flow {
-        val files = storageHelper.scanDirectory()
-        emit(files)
-    }.flowOn(Dispatchers.IO)
+//    fun scanDirectory(): Flow<List<FileInfo>> = flow {
+//        val files = storageHelper.scanDirectory()
+//        emit(files)
+//    }.flowOn(Dispatchers.IO)
+
+    /**
+     * Alternative implementation using Room's Flow support
+     * This will automatically update the UI whenever the database changes
+     */
+    fun observeFiles(): Flow<List<FileInfo>> {
+        return fileStoreDao.getAllFiles()
+            .flowOn(Dispatchers.IO)
+    }
+
+    /**
+     * Scan/Refresh files from storage and update cache
+     */
+    suspend fun scanDirectory() = withContext(Dispatchers.IO) {
+        Log.d(TAG,"scanDirectory")
+        try {
+            val freshFiles = storageHelper.scanDirectory()
+            updateFileCache(freshFiles)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error refreshing files", e)
+        }
+    }
+
+    /**
+     * Update the file cache with fresh data
+     */
+    private suspend fun updateFileCache(files: List<FileInfo>) = withContext(Dispatchers.IO) {
+        try {
+            fileStoreDao.refreshFiles(files)
+            Log.d(TAG, "Updated cache with ${files.size} files")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating file cache", e)
+        }
+    }
+
+    /**
+     * Clear the file cache
+     */
+    fun clearFileCache() {
+        kotlinx.coroutines.runBlocking {
+            withContext(Dispatchers.IO) {
+                fileStoreDao.deleteAllFiles()
+                Log.d(TAG, "File cache cleared")
+            }
+        }
+    }
+
 }
