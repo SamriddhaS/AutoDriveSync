@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("androidx.room")
+    id("kotlin-kapt")
 }
 
 android {
@@ -48,6 +50,9 @@ android {
             excludes += "META-INF/DEPENDENCIES" //TODO : 2 files found with path 'META-INF/DEPENDENCIES' from inputs error without this
         }
     }
+    room {
+        schemaDirectory("$projectDir/schemas")
+    }
 }
 
 dependencies {
@@ -79,4 +84,10 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 
     implementation (libs.google.http.client.android)
+
+    implementation (libs.room.runtime)
+    kapt (libs.room.compiler)
+    implementation (libs.room.ktx)
+
+
 }

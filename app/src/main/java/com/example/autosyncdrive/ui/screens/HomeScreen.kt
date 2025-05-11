@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -40,7 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.autosyncdrive.utils.FileInfo
+import com.example.autosyncdrive.data.localdb.FileInfo
 import com.example.autosyncdrive.utils.PermissionHandler
 import com.example.autosyncdrive.utils.RequestStoragePermission
 import com.example.autosyncdrive.viewmodels.MainViewModel
@@ -49,13 +50,14 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun HomeScreen(viewModel: MainViewModel) {
+fun HomeScreen(
+    viewModel: MainViewModel,
+    modifier: Modifier = Modifier
+    ) {
+
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
     val permissionHandler = remember { PermissionHandler(context) }
-
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Google Drive", "Local Storage")
 
     // Permission request handler
     RequestStoragePermission(
@@ -82,48 +84,31 @@ fun HomeScreen(viewModel: MainViewModel) {
         viewModel.handleSignInResult(result.resultCode, result.data)
     }
 
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            TabRow(selectedTabIndex = selectedTabIndex) {
-                tabs.forEachIndexed { index, title ->
-                    Tab(
-                        text = { Text(title) },
-                        selected = selectedTabIndex == index,
-                        onClick = { selectedTabIndex = index }
-                    )
+
+        GoogleDriveTab(
+            uiState = uiState.googleDriveState,
+            onSignInClick = { signInLauncher.launch(viewModel.getSignInIntent()) },
+            onSignOutClick = { viewModel.signOut() },
+            onUploadClick = { viewModel.uploadTestFile() }
+        )
+
+        LocalStorageTab(
+            uiState = uiState.storageState,
+            onSelectDirectoryClick = {
+                if (permissionHandler.hasStoragePermissions()) {
+                    directoryPickerLauncher.launch(viewModel.getDirectoryPickerIntent())
+                } else {
+                    // Launch app settings if permissions were denied
+                    context.startActivity(permissionHandler.getAppSettingsIntent())
                 }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            when (selectedTabIndex) {
-                0 -> GoogleDriveTab(
-                    uiState = uiState.googleDriveState,
-                    onSignInClick = { signInLauncher.launch(viewModel.getSignInIntent()) },
-                    onSignOutClick = { viewModel.signOut() },
-                    onUploadClick = { viewModel.uploadTestFile() }
-                )
-                1 -> LocalStorageTab(
-                    uiState = uiState.storageState,
-                    onSelectDirectoryClick = {
-                        if (permissionHandler.hasStoragePermissions()) {
-                            directoryPickerLauncher.launch(viewModel.getDirectoryPickerIntent())
-                        } else {
-                            // Launch app settings if permissions were denied
-                            context.startActivity(permissionHandler.getAppSettingsIntent())
-                        }
-                    },
-                    onScanClick = { viewModel.scanSelectedDirectory() }
-                )
-            }
-        }
+            },
+            onScanClick = { viewModel.scanSelectedDirectory() }
+        )
     }
 }
 
@@ -134,7 +119,7 @@ fun GoogleDriveTab(
     onSignOutClick: () -> Unit,
     onUploadClick: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column {
         if (uiState.isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -209,7 +194,7 @@ fun LocalStorageTab(
     onSelectDirectoryClick: () -> Unit,
     onScanClick: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
+    Column {
         if (uiState.isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -238,6 +223,7 @@ fun LocalStorageTab(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
+
                     Button(
                         onClick = onScanClick
                     ) {
@@ -248,6 +234,8 @@ fun LocalStorageTab(
                         Spacer(modifier = Modifier.padding(start = 4.dp))
                         Text("Scan Directory")
                     }
+
+                    Spacer(modifier = Modifier.width(8.dp))
 
                     OutlinedButton(
                         onClick = onSelectDirectoryClick
@@ -263,10 +251,11 @@ fun LocalStorageTab(
 
                 // Last scan time
                 uiState.lastScanTime?.let { lastScanTime ->
-                    val dateFormat = SimpleDateFormat("MM/dd/yyyy HH:mm:ss", Locale.getDefault())
+                    val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault())
                     val formattedDate = dateFormat.format(Date(lastScanTime))
 
                     Spacer(modifier = Modifier.height(8.dp))
+
                     Text(
                         text = "Last Scan: $formattedDate",
                         style = MaterialTheme.typography.bodySmall
@@ -385,6 +374,11 @@ fun FileItem(fileInfo: FileInfo) {
                     style = MaterialTheme.typography.bodySmall
                 )
             }
+
+            Text(
+                text = "Backup State: ${if(fileInfo.isBackedUp) "Complete" else "Not Backed Up"}",
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }

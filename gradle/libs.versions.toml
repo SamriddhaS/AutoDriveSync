@@ -17,6 +17,7 @@ googleOauthClientJetty = "1.34.1"
 googleApiClient = "2.2.0"
 navigationCompose = "2.7.7"
 coroutines = "1.9.0"
+room_version = "2.6.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -46,6 +47,11 @@ google-api-services-drive = { module = "com.google.apis:google-api-services-driv
 google-oauth-client-jetty = { module = "com.google.oauth-client:google-oauth-client-jetty", version.ref = "googleOauthClientJetty" }
 google-api-client = { module = "com.google.api-client:google-api-client", version.ref = "googleApiClient" }
 google-http-client-android = { module = "com.google.http-client:google-http-client-android", version.ref = "googleHttpClientAndroid" }
+
+# room db
+room-runtime = { module = "androidx.room:room-runtime", version.ref = "room_version"}
+room-compiler = { module = "androidx.room:room-compiler", version.ref = "room_version"}
+room-ktx = { module = "androidx.room:room-ktx", version.ref = "room_version"}
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

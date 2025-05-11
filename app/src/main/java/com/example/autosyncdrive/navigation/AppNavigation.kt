@@ -28,7 +28,8 @@ fun AppNavHost(
 
         composable(route = Routes.HOME_SCREEN){
             HomeScreen(
-                viewModel = mainViewModel
+                viewModel = mainViewModel,
+                modifier = modifier
             )
         }
 

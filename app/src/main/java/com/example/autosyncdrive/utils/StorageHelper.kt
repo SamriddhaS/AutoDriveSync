@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.util.Log
+import com.example.autosyncdrive.data.localdb.FileInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -66,7 +67,7 @@ class StorageHelper(private val context: Context) {
      * Scans the selected directory and returns a list of all files
      * @return List of file information or empty list if no directory is selected or error occurs.
      */
-    suspend fun scanDirectory(): List<FileInfo> = withContext(Dispatchers.IO) {
+    suspend fun scanDirectory(includeHidden:Boolean=false): List<FileInfo> = withContext(Dispatchers.IO) {
         val fileList = mutableListOf<FileInfo>()
         val directoryUri = getSelectedDirectoryUri() ?: return@withContext fileList
 
@@ -100,13 +101,20 @@ class StorageHelper(private val context: Context) {
                     val lastModified = it.getLong(it.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_LAST_MODIFIED))
                     val fileUri = DocumentsContract.buildDocumentUriUsingTree(directoryUri, documentId)
 
+                    if (!includeHidden && name.startsWith(".")) {
+                        continue
+                    }
+
                     val fileInfo = FileInfo(
                         name = name,
                         uri = fileUri,
                         mimeType = mimeType,
                         size = size,
-                        lastModified = lastModified
+                        lastModified = lastModified,
+                        isBackedUp = false,
+                        documentId = documentId
                     )
+
                     fileList.add(fileInfo)
                     Log.d(TAG, "Found file: ${fileInfo.name}, type: ${fileInfo.mimeType}, uri: $fileUri")
                 }
@@ -143,13 +151,3 @@ class StorageHelper(private val context: Context) {
     }
 }
 
-/**
- * Data class to hold file information
- */
-data class FileInfo(
-    val name: String,
-    val uri: Uri,
-    val mimeType: String,
-    val size: Long,
-    val lastModified: Long
-)

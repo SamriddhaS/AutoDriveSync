@@ -1,9 +1,10 @@
-package com.example.autosyncdrive.repositories
+package com.example.autosyncdrive.data
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
-import com.example.autosyncdrive.utils.FileInfo
+import com.example.autosyncdrive.data.localdb.FileInfo
+import com.example.autosyncdrive.data.localdb.FileStoreDao
 import com.example.autosyncdrive.utils.GoogleDriveHelper
 import com.example.autosyncdrive.utils.StorageHelper
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -20,7 +21,8 @@ import java.io.File
  * Repository to handle Google Drive operations
  */
 class MainRepository(
-    private val context: Context
+    private val context: Context,
+    private val fileStoreDao: FileStoreDao
 ) {
     private val googleDriveHelper = GoogleDriveHelper(context)
     private val storageHelper = StorageHelper(context)

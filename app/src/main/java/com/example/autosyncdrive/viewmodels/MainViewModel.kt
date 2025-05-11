@@ -7,8 +7,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.autosyncdrive.repositories.MainRepository
-import com.example.autosyncdrive.utils.FileInfo
+import com.example.autosyncdrive.data.MainRepository
+import com.example.autosyncdrive.data.localdb.FileInfo
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

@@ -1,7 +1,8 @@
 package com.example.autosyncdrive.di
 
 import android.content.Context
-import com.example.autosyncdrive.repositories.MainRepository
+import com.example.autosyncdrive.data.MainRepository
+import com.example.autosyncdrive.data.localdb.FileStorageDb
 import com.example.autosyncdrive.viewmodels.MainViewModelFactory
 
 /**
@@ -10,17 +11,31 @@ import com.example.autosyncdrive.viewmodels.MainViewModelFactory
  */
 object DIModule {
     private var mainRepository: MainRepository? = null
+    private var appDatabase: FileStorageDb? = null
 
-    // Get Google Drive Repository
-    fun provideGoogleDriveRepository(context: Context): MainRepository {
-        return mainRepository ?: MainRepository(context).also {
+    // Provide AppDatabase instance
+    fun provideAppDatabase(context: Context): FileStorageDb {
+        return appDatabase ?: FileStorageDb.getDatabase(context).also {
+            appDatabase = it
+        }
+    }
+
+    // Get File Info DAO
+    fun provideFileInfoDao(context: Context) = provideAppDatabase(context).fileInfoDao()
+
+    // Get MainRepository with database injection
+    fun provideMainRepository(context: Context): MainRepository {
+        return mainRepository ?: MainRepository(
+            context = context,
+            fileStoreDao = provideFileInfoDao(context)
+        ).also {
             mainRepository = it
         }
     }
 
     // Get Google Drive ViewModel Factory
     fun provideGoogleDriveViewModelFactory(context: Context): MainViewModelFactory {
-        return MainViewModelFactory(provideGoogleDriveRepository(context))
+        return MainViewModelFactory(provideMainRepository(context))
     }
 
 
