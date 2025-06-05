@@ -16,5 +16,18 @@ data class FileInfo(
     val mimeType: String?,
     val size: Long,
     val lastModified: Long,
-    val isBackedUp:Boolean
+    val isBackedUp:Boolean,
+    // Sync-related fields
+    val syncStatus: SyncStatus = SyncStatus.PENDING,
+    val googleDriveFileId: String? = null,
+    val lastSyncedAt: Long? = null,
+    val syncRetryCount: Int = 0,
+    val fileHash: String? = null
 )
+
+enum class SyncStatus {
+    PENDING,    // File needs to be synced
+    IN_PROGRESS, // Currently being uploaded
+    SYNCED,     // Successfully synced
+    FAILED      // Failed to sync
+}
