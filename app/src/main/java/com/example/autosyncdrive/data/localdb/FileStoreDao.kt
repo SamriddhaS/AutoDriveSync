@@ -49,8 +49,8 @@ interface FileStoreDao {
     @Query("UPDATE file_cache SET syncStatus = :status WHERE documentId = :documentId")
     suspend fun updateSyncStatus(documentId: String, status: SyncStatus)
 
-    @Query("UPDATE file_cache SET syncStatus = :status, googleDriveFileId = :driveFileId, lastSyncedAt = :syncTime WHERE documentId = :documentId")
-    suspend fun updateSyncSuccess(documentId: String, status: SyncStatus, driveFileId: String, syncTime: Long)
+    @Query("UPDATE file_cache SET syncStatus = :status, googleDriveFileId = :driveFileId, lastSyncedAt = :syncTime, fileHash = :fileHash WHERE documentId = :documentId")
+    suspend fun updateSyncSuccess(documentId: String, status: SyncStatus, driveFileId: String, syncTime: Long,fileHash: String)
 
     @Query("UPDATE file_cache SET syncStatus = :status, syncRetryCount = syncRetryCount + 1 WHERE documentId = :documentId")
     suspend fun updateSyncFailure(documentId: String, status: SyncStatus)

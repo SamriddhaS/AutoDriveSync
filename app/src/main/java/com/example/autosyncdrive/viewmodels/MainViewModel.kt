@@ -32,12 +32,7 @@ class MainViewModel(
 
         viewModelScope.launch {
             repository.observeFiles().collect { files ->
-                Log.d(TAG, "Found ${files.size} files in the directory")
-
-                // Log all files for debugging
-                files.forEach { fileInfo ->
-                    Log.d(TAG, "File: ${fileInfo.name}, Type: ${fileInfo.mimeType}, Size: ${fileInfo.size}")
-                }
+                Log.d(TAG, "Observe Files : ${files.size} files in the directory")
 
                 _uiState.update {
                     it.copy(

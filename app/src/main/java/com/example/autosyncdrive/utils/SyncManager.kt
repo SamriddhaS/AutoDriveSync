@@ -130,17 +130,19 @@ class SyncManager(
             val driveFileId = uploadWithDuplicateHandling(account, fileInfo.uri, fileInfo.name,folderName)
 
             if (driveFileId != null) {
+
                 // Update as successfully synced
                 fileStoreDao.updateSyncSuccess(
                     documentId = fileInfo.documentId,
                     status = SyncStatus.SYNCED,
                     driveFileId = driveFileId,
-                    syncTime = System.currentTimeMillis()
+                    syncTime = System.currentTimeMillis(),
+                    fileHash = fileHash
                 )
 
-                // Update file hash
-                val updatedFile = fileInfo.copy(fileHash = fileHash)
-                fileStoreDao.updateFile(updatedFile)
+//                // Update file hash
+//                val updatedFile = fileInfo.copy(fileHash = fileHash)
+//                fileStoreDao.updateFile(updatedFile)
 
                 return@withContext true
             } else {
