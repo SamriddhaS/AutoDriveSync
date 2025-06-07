@@ -1,4 +1,4 @@
-package com.example.autosyncdrive.data.localdb
+package com.example.autosyncdrive.data.models
 
 import android.net.Uri
 import androidx.room.Entity
@@ -25,9 +25,4 @@ data class FileInfo(
     val fileHash: String? = null
 )
 
-enum class SyncStatus {
-    PENDING,    // File needs to be synced
-    IN_PROGRESS, // Currently being uploaded
-    SYNCED,     // Successfully synced
-    FAILED      // Failed to sync
-}
+

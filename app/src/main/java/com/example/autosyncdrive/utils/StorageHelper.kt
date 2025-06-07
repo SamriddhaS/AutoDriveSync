@@ -5,7 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.DocumentsContract
 import android.util.Log
-import com.example.autosyncdrive.data.localdb.FileInfo
+import com.example.autosyncdrive.data.models.FileInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

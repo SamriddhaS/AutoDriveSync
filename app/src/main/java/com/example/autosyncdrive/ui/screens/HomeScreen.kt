@@ -1,6 +1,5 @@
-package com.example.autosyncdrive.ui
+package com.example.autosyncdrive.ui.screens
 
-import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -26,25 +25,21 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.autosyncdrive.data.localdb.FileInfo
+import com.example.autosyncdrive.data.models.FileInfo
 import com.example.autosyncdrive.utils.PermissionHandler
 import com.example.autosyncdrive.utils.RequestStoragePermission
 import com.example.autosyncdrive.viewmodels.MainViewModel
+import com.example.autosyncdrive.viewmodels.SyncUiState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -94,11 +89,13 @@ fun HomeScreen(
             uiState = uiState.googleDriveState,
             onSignInClick = { signInLauncher.launch(viewModel.getSignInIntent()) },
             onSignOutClick = { viewModel.signOut() },
-            onUploadClick = { viewModel.uploadTestFile() }
+            onUploadClick = { viewModel.startSync() },
+            onRetryFailedSync = { viewModel.retryFailedSync() }
         )
 
         LocalStorageTab(
             uiState = uiState.storageState,
+            syncUiState = uiState.syncState,
             onSelectDirectoryClick = {
                 if (permissionHandler.hasStoragePermissions()) {
                     directoryPickerLauncher.launch(viewModel.getDirectoryPickerIntent())
@@ -117,7 +114,8 @@ fun GoogleDriveTab(
     uiState: com.example.autosyncdrive.viewmodels.GoogleDriveUiState,
     onSignInClick: () -> Unit,
     onSignOutClick: () -> Unit,
-    onUploadClick: () -> Unit
+    onUploadClick: () -> Unit,
+    onRetryFailedSync: () -> Unit,
 ) {
     Column {
         if (uiState.isLoading) {
@@ -141,7 +139,11 @@ fun GoogleDriveTab(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Button(onClick = onUploadClick) {
-                        Text("Upload Test File")
+                        Text("Start Sync")
+                    }
+
+                    Button(onClick = onRetryFailedSync) {
+                        Text("Retry Failed Sync")
                     }
 
                     OutlinedButton(onClick = onSignOutClick) {
@@ -191,6 +193,7 @@ fun GoogleDriveTab(
 @Composable
 fun LocalStorageTab(
     uiState: com.example.autosyncdrive.viewmodels.StorageUiState,
+    syncUiState: SyncUiState,
     onSelectDirectoryClick: () -> Unit,
     onScanClick: () -> Unit
 ) {
@@ -260,6 +263,48 @@ fun LocalStorageTab(
                         text = "Last Scan: $formattedDate",
                         style = MaterialTheme.typography.bodySmall
                     )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                syncUiState.let { syncState ->
+                    syncState.isSyncing?.let {
+                        Text(
+                            text = "Is Syncing : $it",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    syncState.lastSyncTime?.let {
+                        Text(
+                            text = "Last Sync Time : $it",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    syncState.pendingFiles?.let {
+                        Text(
+                            text = "Pending File Count : ${it.size}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    syncState.syncedFiles?.let {
+                        Text(
+                            text = "Synced File Count : ${it.size}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    syncState.failedFiles?.let {
+                        Text(
+                            text = "Failed File Count : ${it.size}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+
+                    syncState.error?.let {
+                        Text(
+                            text = "Error : $it",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))

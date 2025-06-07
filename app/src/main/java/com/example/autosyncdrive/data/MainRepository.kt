@@ -3,18 +3,20 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
-import com.example.autosyncdrive.data.localdb.FileInfo
+import com.example.autosyncdrive.data.models.FileInfo
 import com.example.autosyncdrive.data.localdb.FileStoreDao
+import com.example.autosyncdrive.data.models.SyncResult
+import com.example.autosyncdrive.data.models.SyncStats
+import com.example.autosyncdrive.data.models.SyncStatus
 import com.example.autosyncdrive.utils.GoogleDriveHelper
 import com.example.autosyncdrive.utils.StorageHelper
+import com.example.autosyncdrive.utils.SyncManager
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.tasks.Task
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.io.File
 
@@ -27,6 +29,7 @@ class MainRepository(
 ) {
     private val googleDriveHelper = GoogleDriveHelper(context)
     private val storageHelper = StorageHelper(context)
+    private val syncManager = SyncManager(context, fileStoreDao, googleDriveHelper)
     private val TAG = "MainRepository"
 
     // Get sign-in intent
@@ -52,7 +55,7 @@ class MainRepository(
         return googleDriveHelper.createSampleFile()
     }
 
-    // Upload file to Google Drive
+    // Upload file to Google Drivea
     suspend fun uploadFileToDrive(account: GoogleSignInAccount): Result<String> = withContext(Dispatchers.IO) {
         try {
             val file = createSampleFile()
@@ -151,6 +154,72 @@ class MainRepository(
                 Log.d(TAG, "File cache cleared")
             }
         }
+    }
+
+
+    /**
+     * Start manual sync of all pending files
+     */
+    suspend fun startSync(account: GoogleSignInAccount): SyncResult = withContext(Dispatchers.IO) {
+        Log.d(TAG, "Starting manual sync")
+        return@withContext syncManager.syncPendingFiles(account)
+    }
+
+    /**
+     * Retry failed file uploads
+     */
+    suspend fun retryFailedSync(account: GoogleSignInAccount): SyncResult = withContext(Dispatchers.IO) {
+        Log.d(TAG, "Retrying failed sync")
+        return@withContext syncManager.retryFailedFiles(account)
+    }
+
+    /**
+     * Get sync statistics
+     */
+    suspend fun getSyncStats(): SyncStats = withContext(Dispatchers.IO) {
+        SyncStats(
+            totalFiles = fileStoreDao.getFileCount(),
+            pendingFiles = fileStoreDao.getPendingFileCount(),
+            syncedFiles = fileStoreDao.getSyncedFileCount(),
+            failedFiles = fileStoreDao.getFailedFileCount()
+        )
+    }
+
+    /**
+     * Observe sync queue
+     */
+    fun observeSyncQueue(): Flow<List<FileInfo>> {
+        return fileStoreDao.observeSyncQueue()
+    }
+
+    /**
+     * Observe synced files
+     */
+    fun observeSyncedFiles(): Flow<List<FileInfo>> {
+        return fileStoreDao.observeSyncedFiles()
+    }
+
+    /**
+     * Observe failed files
+     */
+    fun observeFailedFiles(): Flow<List<FileInfo>> {
+        return fileStoreDao.observeFailedFiles()
+    }
+
+    /**
+     * Get files by specific sync status
+     */
+    suspend fun getFilesByStatus(status: SyncStatus): List<FileInfo> = withContext(Dispatchers.IO) {
+        return@withContext fileStoreDao.getFilesByStatus(status)
+    }
+
+    /**
+     * Manually reset a file's sync status to pending
+     * Useful for re-syncing specific files
+     */
+    suspend fun resetFileToSync(fileInfo: FileInfo) = withContext(Dispatchers.IO) {
+        fileStoreDao.updateSyncStatus(fileInfo.documentId, SyncStatus.PENDING)
+        Log.d(TAG, "Reset file to sync: ${fileInfo.name}")
     }
 
 }

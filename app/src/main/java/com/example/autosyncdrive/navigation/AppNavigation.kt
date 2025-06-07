@@ -7,7 +7,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.autosyncdrive.ui.HomeScreen
+import com.example.autosyncdrive.ui.screens.HomeScreen
 import com.example.autosyncdrive.viewmodels.MainViewModel
 
 object Routes{

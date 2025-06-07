@@ -6,6 +6,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
+import com.example.autosyncdrive.data.models.FileInfo
+import com.example.autosyncdrive.data.models.SyncStatus
 import kotlinx.coroutines.flow.Flow
 
 @Dao

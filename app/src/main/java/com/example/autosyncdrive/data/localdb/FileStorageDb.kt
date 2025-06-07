@@ -5,9 +5,10 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import com.example.autosyncdrive.data.models.FileInfo
 
 
-@Database(entities = [FileInfo::class], version = 1, exportSchema = false)
+@Database(entities = [FileInfo::class], version = 2, exportSchema = false)
 @TypeConverters(UriConverter::class) // Add this annotation
 abstract class FileStorageDb : RoomDatabase() {
 
