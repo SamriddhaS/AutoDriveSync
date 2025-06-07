@@ -50,27 +50,6 @@ class MainRepository(
         googleDriveHelper.googleSignInClient.signOut()
     }
 
-    // Create a sample file
-    suspend fun createSampleFile(): File {
-        return googleDriveHelper.createSampleFile()
-    }
-
-    // Upload file to Google Drivea
-    suspend fun uploadFileToDrive(account: GoogleSignInAccount): Result<String> = withContext(Dispatchers.IO) {
-        try {
-            val file = createSampleFile()
-            val fileId = googleDriveHelper.uploadFileToDrive(account, file)
-
-            if (fileId != null) {
-                Result.success(fileId)
-            } else {
-                Result.failure(Exception("Failed to upload file"))
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error uploading file", e)
-            Result.failure(e)
-        }
-    }
 
     // NEW METHODS FOR STORAGE FUNCTIONALITY
 

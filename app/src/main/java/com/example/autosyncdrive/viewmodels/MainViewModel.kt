@@ -192,45 +192,6 @@ class MainViewModel(
         }
     }
 
-    fun uploadTestFile() {
-        val currentAccount = _uiState.value.googleDriveState.account ?: return
-
-        viewModelScope.launch {
-            _uiState.update {
-                it.copy(
-                    googleDriveState = it.googleDriveState.copy(
-                        isLoading = true,
-                        uploadStatus = "Uploading..."
-                    )
-                )
-            }
-
-            repository.uploadFileToDrive(currentAccount)
-                .onSuccess { fileId ->
-                    _uiState.update {
-                        it.copy(
-                            googleDriveState = it.googleDriveState.copy(
-                                uploadStatus = "File uploaded successfully! ID: $fileId",
-                                isLoading = false,
-                                error = null
-                            )
-                        )
-                    }
-                }
-                .onFailure { error ->
-                    _uiState.update {
-                        it.copy(
-                            googleDriveState = it.googleDriveState.copy(
-                                uploadStatus = "Upload failed",
-                                isLoading = false,
-                                error = error.message
-                            )
-                        )
-                    }
-                }
-        }
-    }
-
     fun signOut() {
         repository.signOut()
         _uiState.update {

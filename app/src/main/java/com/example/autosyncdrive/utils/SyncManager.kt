@@ -64,18 +64,13 @@ class SyncManager(
         val pendingFiles = fileStoreDao.getSyncQueue()
         Log.d(TAG, "Starting sync for ${pendingFiles.size} pending files")
 
-        //TODO : Remove this log
-        fileStoreDao?.getAllFilesList()?.forEachIndexed { index, fileInfo ->
-            Log.d(TAG, "File No ${index} | File Name : ${fileInfo.name} | FileStatus : ${fileInfo.syncStatus}")
-        }
-
         var syncedCount = 0
         var failedCount = 0
         val errors = mutableListOf<String>()
 
         for (file in pendingFiles) {
             try {
-                val result = syncSingleFile(account, file)
+                val result = syncSingleFile(account, file,"TestFolder")
                 if (result) {
                     syncedCount++
                     Log.d(TAG, "Successfully synced: ${file.name}")
@@ -109,7 +104,7 @@ class SyncManager(
 
     }
 
-    private suspend fun syncSingleFile(account: GoogleSignInAccount, fileInfo: FileInfo): Boolean = withContext(Dispatchers.IO) {
+    private suspend fun syncSingleFile(account: GoogleSignInAccount, fileInfo: FileInfo,folderName:String): Boolean = withContext(Dispatchers.IO) {
         try {
             // Update status to IN_PROGRESS
             fileStoreDao.updateSyncStatus(fileInfo.documentId, SyncStatus.IN_PROGRESS)
@@ -132,7 +127,7 @@ class SyncManager(
             val fileHash = calculateFileHashFromUri(uri = fileInfo.uri)
 
             // Upload to Google Drive with duplicate handling
-            val driveFileId = uploadWithDuplicateHandling(account, fileInfo.uri, fileInfo.name)
+            val driveFileId = uploadWithDuplicateHandling(account, fileInfo.uri, fileInfo.name,folderName)
 
             if (driveFileId != null) {
                 // Update as successfully synced
@@ -168,11 +163,12 @@ class SyncManager(
     private suspend fun uploadWithDuplicateHandling(
         account: GoogleSignInAccount,
         uri: Uri,
-        originalName: String
+        originalName: String,
+        folderName:String
     ): String? = withContext(Dispatchers.IO) {
         try {
             // First, try to upload with original name
-            val result = googleDriveHelper.uploadFileToDriveWithName(account, uri, originalName)
+            val result = googleDriveHelper.uploadFileToDriveWithName(account, uri, originalName,folderName)
 
             when (result.status) {
                 UploadStatus.SUCCESS -> {
@@ -182,7 +178,7 @@ class SyncManager(
 
                 UploadStatus.DUPLICATE_NAME -> {
                     Log.d(TAG, "File name '$originalName' already exists, trying with unique name")
-                    return@withContext uploadWithUniqueName(account, uri = uri, originalName)
+                    return@withContext uploadWithUniqueName(account, uri = uri, originalName,folderName)
                 }
 
                 UploadStatus.NETWORK_ERROR -> {
@@ -213,7 +209,8 @@ class SyncManager(
     private suspend fun uploadWithUniqueName(
         account: GoogleSignInAccount,
         uri: Uri,
-        originalName: String
+        originalName: String,
+        folderName:String
     ): String? = withContext(Dispatchers.IO) {
         val nameWithoutExtension = originalName.substringBeforeLast(".")
         val extension = if (originalName.contains(".")) {
@@ -226,7 +223,7 @@ class SyncManager(
         for (copyNumber in 1..10) {
             try {
                 val fileName = "${nameWithoutExtension}_copy${copyNumber}${extension}"
-                val result = googleDriveHelper.uploadFileToDriveWithName(account, uri, fileName)
+                val result = googleDriveHelper.uploadFileToDriveWithName(account, uri, fileName,folderName)
 
                 when (result.status) {
                     UploadStatus.SUCCESS -> {

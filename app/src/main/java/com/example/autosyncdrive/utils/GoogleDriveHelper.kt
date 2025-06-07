@@ -26,8 +26,6 @@ import com.google.api.services.drive.Drive
 import com.google.api.services.drive.DriveScopes
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileWriter
 import java.util.*
 
 class GoogleDriveHelper(private val context: Context) {
@@ -60,53 +58,6 @@ class GoogleDriveHelper(private val context: Context) {
         }
     }
 
-    // Create Drive service
-    private fun getDriveService(account: GoogleSignInAccount): Drive {
-        val transport = AndroidHttp.newCompatibleTransport()
-        val jsonFactory = GsonFactory.getDefaultInstance()
-        val credential = GoogleAccountCredential.usingOAuth2(
-            context, Collections.singleton(DriveScopes.DRIVE_FILE)
-        )
-        credential.selectedAccount = account.account
-
-        return Drive.Builder(transport, jsonFactory, credential)
-            .setApplicationName("Your App Name")
-            .build()
-    }
-
-    // Create a sample file
-    suspend fun createSampleFile(): File = withContext(Dispatchers.IO) {
-        val file = File(context.getExternalFilesDir(null), "MyFile.txt")
-        FileWriter(file).use { writer ->
-            writer.write("Hello, this is a test file from Jetpack Compose!")
-        }
-        file
-    }
-
-    // Upload file to Google Drive
-    suspend fun uploadFileToDrive(account: GoogleSignInAccount, file: File): String? = withContext(Dispatchers.IO) {
-        try {
-            val driveService = getDriveService(account)
-
-            // File metadata
-            val fileMetadata = com.google.api.services.drive.model.File()
-            fileMetadata.name = file.name
-
-            // File content
-            val mediaContent = com.google.api.client.http.FileContent("text/plain", file)
-
-            // Upload file
-            val uploadedFile = driveService.files().create(fileMetadata, mediaContent)
-                .setFields("id")
-                .execute()
-
-            uploadedFile.id
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to upload file", e)
-            null
-        }
-    }
-
     /**
      * Upload file to Google Drive with custom filename and detailed status
      * This method should be added to your existing GoogleDriveHelper class
@@ -114,7 +65,9 @@ class GoogleDriveHelper(private val context: Context) {
     suspend fun uploadFileToDriveWithName(
         account: GoogleSignInAccount,
         uri: Uri,
-        fileName: String
+        fileName: String,
+        //folderId: String? = null // Add folder ID parameter
+        folderName: String
     ): UploadResult = withContext(Dispatchers.IO) {
         try {
             val googleAccountCredential = GoogleAccountCredential.usingOAuth2(
@@ -130,9 +83,18 @@ class GoogleDriveHelper(private val context: Context) {
                 .setApplicationName("AutoSyncDrive")
                 .build()
 
-            // Check if file with same name already exists
+            val folderId = findOrCreateFolder(googleDriveService, folderName = folderName)
+
+            // Build query to check for existing files
+            val query = if (folderId != null) {
+                "name='$fileName' and '$folderId' in parents and trashed=false"
+            } else {
+                "name='$fileName' and trashed=false"
+            }
+
+            // Check if file with same name already exists in the specified folder
             val existingFiles = googleDriveService.files().list()
-                .setQ("name='$fileName' and trashed=false")
+                .setQ(query)
                 .execute()
 
             if (existingFiles.files.isNotEmpty()) {
@@ -148,6 +110,11 @@ class GoogleDriveHelper(private val context: Context) {
             val fileMetadata = com.google.api.services.drive.model.File()
             fileMetadata.name = fileName
 
+            // Set parent folder if provided
+            if (folderId != null) {
+                fileMetadata.parents = listOf(folderId)
+            }
+
             // Get MIME type from the URI
             val mimeType = context.contentResolver.getType(uri) ?: "application/octet-stream"
 
@@ -162,9 +129,6 @@ class GoogleDriveHelper(private val context: Context) {
                     length = fileSize
                 }
             }
-
-            // Create file content
-            //val mediaContent = FileContent(null, file)
 
             // Upload file
             val uploadedFile = googleDriveService.files()
@@ -211,6 +175,38 @@ class GoogleDriveHelper(private val context: Context) {
                 status = UploadStatus.OTHER_ERROR,
                 errorMessage = "Unknown error: ${e.message}"
             )
+        }
+    }
+
+    // Helper function to find or create a folder
+    suspend fun findOrCreateFolder(
+        googleDriveService: Drive,
+        folderName: String
+    ): String = withContext(Dispatchers.IO) {
+        // Build query to find existing folder
+        val query = "name='$folderName' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+
+
+        // Search for existing folder
+        val existingFolders = googleDriveService.files().list()
+            .setQ(query)
+            .execute()
+
+        if (existingFolders.files.isNotEmpty()) {
+            // Folder exists, return its ID
+            return@withContext existingFolders.files[0].id
+        } else {
+            // Create new folder
+            val folderMetadata = com.google.api.services.drive.model.File()
+            folderMetadata.name = folderName
+            folderMetadata.mimeType = "application/vnd.google-apps.folder"
+
+            val createdFolder = googleDriveService.files()
+                .create(folderMetadata)
+                .setFields("id")
+                .execute()
+
+            return@withContext createdFolder.id
         }
     }
 

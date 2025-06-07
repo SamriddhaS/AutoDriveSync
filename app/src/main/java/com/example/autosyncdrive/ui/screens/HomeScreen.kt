@@ -421,7 +421,7 @@ fun FileItem(fileInfo: FileInfo) {
             }
 
             Text(
-                text = "Backup State: ${if(fileInfo.isBackedUp) "Complete" else "Not Backed Up"}",
+                text = "Backup State: ${fileInfo.syncStatus}",
                 style = MaterialTheme.typography.bodySmall
             )
         }
