@@ -130,7 +130,6 @@ interface FileStoreDao {
     // Helper function to detect file changes
     private fun hasFileChanged(existingFile: FileInfo, newFile: FileInfo): Boolean {
         return existingFile.lastModified != newFile.lastModified ||
-                existingFile.size != newFile.size ||
-                existingFile.fileHash != newFile.fileHash
+                existingFile.size != newFile.size
     }
 }
