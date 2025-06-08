@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Menu
@@ -43,6 +44,7 @@ import com.example.autosyncdrive.viewmodels.SyncUiState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
 
 @Composable
 fun HomeScreen(
@@ -90,7 +92,6 @@ fun HomeScreen(
             onSignInClick = { signInLauncher.launch(viewModel.getSignInIntent()) },
             onSignOutClick = { viewModel.signOut() },
             onUploadClick = { viewModel.startSync() },
-            onRetryFailedSync = { viewModel.retryFailedSync() }
         )
 
         LocalStorageTab(
@@ -104,7 +105,8 @@ fun HomeScreen(
                     context.startActivity(permissionHandler.getAppSettingsIntent())
                 }
             },
-            onScanClick = { viewModel.scanSelectedDirectory() }
+            onScanClick = { viewModel.scanSelectedDirectory() },
+            onRetryFailedSync = { viewModel.retryFailedSync() }
         )
     }
 }
@@ -115,7 +117,6 @@ fun GoogleDriveTab(
     onSignInClick: () -> Unit,
     onSignOutClick: () -> Unit,
     onUploadClick: () -> Unit,
-    onRetryFailedSync: () -> Unit,
 ) {
     Column {
         if (uiState.isLoading) {
@@ -128,7 +129,7 @@ fun GoogleDriveTab(
         } else {
             if (uiState.isSignedIn) {
                 Text(
-                    text = "Signed in as: ${uiState.account?.email}",
+                    text = "Drive Connected : ${uiState.account?.email}",
                     style = MaterialTheme.typography.titleMedium
                 )
 
@@ -140,10 +141,6 @@ fun GoogleDriveTab(
                 ) {
                     Button(onClick = onUploadClick) {
                         Text("Start Sync")
-                    }
-
-                    Button(onClick = onRetryFailedSync) {
-                        Text("Retry Failed Sync")
                     }
 
                     OutlinedButton(onClick = onSignOutClick) {
@@ -195,7 +192,8 @@ fun LocalStorageTab(
     uiState: com.example.autosyncdrive.viewmodels.StorageUiState,
     syncUiState: SyncUiState,
     onSelectDirectoryClick: () -> Unit,
-    onScanClick: () -> Unit
+    onScanClick: () -> Unit,
+    onRetryFailedSync: () -> Unit
 ) {
     Column {
         if (uiState.isLoading) {
@@ -311,10 +309,27 @@ fun LocalStorageTab(
 
                 // File list
                 if (uiState.files.isNotEmpty()) {
-                    Text(
-                        text = "Files (${uiState.files.size}):",
-                        style = MaterialTheme.typography.titleMedium
-                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+
+                        Text(
+                            text = "Files (${uiState.files.size}):",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+
+                        if(syncUiState.failedFiles.isNotEmpty()){
+                            Button(
+                                onClick = onRetryFailedSync,
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text("Retry Failed Sync")
+                            }
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
