@@ -28,6 +28,9 @@ interface FileStoreDao {
     @Query("SELECT * FROM file_cache WHERE syncStatus = 'PENDING' ORDER BY lastModified ASC")
     suspend fun getSyncQueue(): List<FileInfo>
 
+    @Query("SELECT * from file_cache WHERE syncStatus = 'PENDING' and documentId = :documentId")
+    suspend fun getSingleSyncFile(documentId: String):FileInfo
+
     @Query("SELECT * FROM file_cache WHERE syncStatus = 'PENDING' ORDER BY lastModified ASC")
     fun observeSyncQueue(): Flow<List<FileInfo>>
 

@@ -18,7 +18,7 @@ import com.example.autosyncdrive.ui.theme.AutoSyncDriveTheme
 
 class MainActivity : ComponentActivity() {
 
-    var viewModel: MainViewModel?=null
+    private var viewModel: MainViewModel?=null
 
     override fun onResume() {
         super.onResume()

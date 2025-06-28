@@ -37,6 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.autosyncdrive.data.models.FileInfo
+import com.example.autosyncdrive.data.models.SyncStatus
 import com.example.autosyncdrive.utils.PermissionHandler
 import com.example.autosyncdrive.utils.RequestStoragePermission
 import com.example.autosyncdrive.viewmodels.MainViewModel
@@ -106,7 +107,10 @@ fun HomeScreen(
                 }
             },
             onScanClick = { viewModel.scanSelectedDirectory() },
-            onRetryFailedSync = { viewModel.retryFailedSync() }
+            onRetryFailedSync = { viewModel.retryFailedSync() },
+            onTrySyncSingleFile = { file ->
+                viewModel.syncSingleFile(fileInfo = file)
+            }
         )
     }
 }
@@ -140,7 +144,7 @@ fun GoogleDriveTab(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Button(onClick = onUploadClick) {
-                        Text("Start Sync")
+                        Text("Sync All")
                     }
 
                     OutlinedButton(onClick = onSignOutClick) {
@@ -193,7 +197,8 @@ fun LocalStorageTab(
     syncUiState: SyncUiState,
     onSelectDirectoryClick: () -> Unit,
     onScanClick: () -> Unit,
-    onRetryFailedSync: () -> Unit
+    onRetryFailedSync: () -> Unit,
+    onTrySyncSingleFile: (fileInfo: FileInfo) -> Unit
 ) {
     Column {
         if (uiState.isLoading) {
@@ -335,7 +340,10 @@ fun LocalStorageTab(
 
                     LazyColumn {
                         items(uiState.files) { fileInfo ->
-                            FileItem(fileInfo)
+                            FileItem(
+                                fileInfo,
+                                onTrySyncSingleFile = onTrySyncSingleFile
+                            )
                             Divider()
                         }
                     }
@@ -386,7 +394,10 @@ fun LocalStorageTab(
 }
 
 @Composable
-fun FileItem(fileInfo: FileInfo) {
+fun FileItem(
+    fileInfo: FileInfo,
+    onTrySyncSingleFile: (fileInfo: FileInfo) -> Unit
+    ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -439,6 +450,17 @@ fun FileItem(fileInfo: FileInfo) {
                 text = "Backup State: ${fileInfo.syncStatus}",
                 style = MaterialTheme.typography.bodySmall
             )
+
+            if (fileInfo.syncStatus!=SyncStatus.SYNCED){
+                Button(
+                    onClick = {
+                        onTrySyncSingleFile(fileInfo)
+                    },
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Text("Sync Item")
+                }
+            }
         }
     }
 }

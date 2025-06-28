@@ -366,6 +366,43 @@ class MainViewModel(
         }
     }
 
+    fun syncSingleFile(fileInfo: FileInfo){
+        resetFileToSync(fileInfo)
+        viewModelScope.launch {
+            _uiState.update {
+                it.copy(
+                    syncState = it.syncState.copy(
+                        isSyncing = true,
+                        syncStatus = "Starting sync...",
+                        error = null
+                    )
+                )
+            }
+
+            val syncResult = repository.startSyncForSingleFile(fileInfo.documentId)
+
+            Log.d(TAG,syncResult?.message?:"")
+
+            _uiState.update {
+                it.copy(
+                    syncState = it.syncState.copy(
+                        isSyncing = false,
+                        syncStatus = if (syncResult?.success == true) {
+                            "Sync completed successfully! ${syncResult.syncedCount} files synced"
+                        } else {
+                            "Sync completed with ${syncResult?.failedCount} failures"
+                        },
+                        lastSyncResult = syncResult,
+                        lastSyncTime = System.currentTimeMillis()
+                    )
+                )
+            }
+
+            // Refresh sync stats
+            refreshSyncStats()
+        }
+    }
+
     /**
      * Reset a specific file to be synced again
      */

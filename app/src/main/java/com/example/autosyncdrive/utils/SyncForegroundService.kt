@@ -33,11 +33,13 @@ class SyncForegroundService:Service() {
 
         // Actions
         const val ACTION_START_SYNC = "com.example.autosyncdrive.START_SYNC"
+        const val ACTION_START_SINGLE_SYNC = "com.example.autosyncdrive.START_SINGLE_SYNC"
         const val ACTION_RETRY_FAILED = "com.example.autosyncdrive.RETRY_FAILED"
         const val ACTION_STOP_SYNC = "com.example.autosyncdrive.STOP_SYNC"
 
         // Extras
         const val EXTRA_SYNC_TYPE = "sync_type"
+        const val EXTRA_DOCUMENT_ID = "document_id"
         const val SYNC_TYPE_MANUAL = "manual"
         const val SYNC_TYPE_AUTO = "auto"
 
@@ -45,6 +47,15 @@ class SyncForegroundService:Service() {
             val intent = Intent(context, SyncForegroundService::class.java).apply {
                 action = ACTION_START_SYNC
                 putExtra(EXTRA_SYNC_TYPE, syncType)
+            }
+            context.startForegroundService(intent)
+        }
+
+        fun startSyncForSingleFile(context: Context, syncType: String = SYNC_TYPE_MANUAL,documentId:String) {
+            val intent = Intent(context, SyncForegroundService::class.java).apply {
+                action = ACTION_START_SINGLE_SYNC
+                putExtra(EXTRA_SYNC_TYPE, syncType)
+                putExtra(EXTRA_DOCUMENT_ID, documentId)
             }
             context.startForegroundService(intent)
         }
@@ -106,6 +117,11 @@ class SyncForegroundService:Service() {
             ACTION_START_SYNC -> {
                 val syncType = intent.getStringExtra(EXTRA_SYNC_TYPE) ?: SYNC_TYPE_MANUAL
                 startSyncOperation(syncType)
+            }
+            ACTION_START_SINGLE_SYNC -> {
+                val syncType = intent.getStringExtra(EXTRA_SYNC_TYPE) ?: SYNC_TYPE_MANUAL
+                val documentId = intent.getStringExtra(EXTRA_DOCUMENT_ID) ?: ""
+                startSingleSyncOperation(syncType,documentId)
             }
             ACTION_RETRY_FAILED -> {
                 retryFailedOperation()
@@ -190,6 +206,59 @@ class SyncForegroundService:Service() {
         }
     }
 
+    private fun startSingleSyncOperation(syncType: String,documentId: String) {
+        if (isSyncing){
+            Log.d(TAG,"Sync Already In Progress")
+            return
+        }
+
+        googleSignInAccount?.let { googleSignInAccount ->
+            isSyncing = true
+
+            startForeground(NOTIFICATION_ID, createInitialNotification(syncType))
+            currentSyncJob = serviceScope.launch {
+                try {
+                    val stats = SyncStats(
+                        totalFiles = fileStoreDao?.getFileCount()?:0,
+                        pendingFiles = fileStoreDao?.getPendingFileCount()?:0,
+                        syncedFiles = fileStoreDao?.getSyncedFileCount()?:0,
+                        failedFiles = fileStoreDao?.getFailedFileCount()?:0
+                    )
+                    totalFiles = stats.pendingFiles
+                    syncedFiles = 0
+                    failedFiles = 0
+
+                    Log.d(TAG, "Starting sync for $totalFiles files")
+
+                    if (totalFiles == 0) {
+                        showCompletionNotification("No files to sync", syncType)
+                        stopSelf()
+                        return@launch
+                    }
+
+                    val file = fileStoreDao?.getSingleSyncFile(documentId = documentId)
+                    showSingleNotification(file?.name?:"Name not found")
+
+                    // Start the actual sync
+                    syncManager?.syncSingleFileUsingDocumentId(documentId,googleSignInAccount)?.let {
+                        handleSyncResult(it, syncType)
+                        syncResult = it
+                    }
+
+                }catch (e: Exception) {
+                    Log.e(TAG, "Error during sync", e)
+                    showErrorNotification("Sync failed: ${e.message}")
+                    stopSelf()
+                } finally {
+                    isSyncing = false
+                }
+            }
+        } ?: run {
+            Log.e(TAG, "No Google account available")
+            stopSelf()
+        }
+    }
+
     private fun handleSyncResult(result: SyncResult, syncType: String) {
         syncedFiles = result.syncedCount
         failedFiles = result.failedCount
@@ -205,15 +274,12 @@ class SyncForegroundService:Service() {
 
         // Stop the service after a delay to let user see the completion
         serviceScope.launch {
-            kotlinx.coroutines.delay(3000)
+            kotlinx.coroutines.delay(5000)
             stopSelf()
         }
     }
 
     private suspend fun observeSyncProgress() {
-        // This is a simplified approach - you might want to implement more detailed progress tracking
-        // by modifying your SyncManager to emit progress updates
-
         serviceScope.launch {
             fileStoreDao?.observeSyncQueue()?.collect { pendingFiles ->
                 val currentPending = pendingFiles.size
@@ -238,6 +304,20 @@ class SyncForegroundService:Service() {
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setOngoing(true)
             .setProgress(totalFiles, syncedFiles, false)
+            .addAction(createStopAction())
+            .setContentIntent(createContentIntent())
+            .build()
+
+        notificationManager.notify(NOTIFICATION_ID, notification)
+    }
+
+    private fun showSingleNotification(fileName:String) {
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Syncing In Progress")
+            .setContentText("File Name : $fileName")
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setOngoing(true)
             .addAction(createStopAction())
             .setContentIntent(createContentIntent())
             .build()

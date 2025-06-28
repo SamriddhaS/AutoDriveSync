@@ -157,6 +157,18 @@ class MainRepository(
         return@withContext SyncForegroundService.syncResult
     }
 
+
+    /**
+     * Start manual sync of all pending files
+     */
+    suspend fun startSyncForSingleFile(documentId:String): SyncResult? = withContext(Dispatchers.IO) {
+        Log.d(TAG, "Starting manual sync")
+        //return@withContext syncManager.syncPendingFiles(account)
+        //SyncForegroundService.startSync(context, SyncForegroundService.SYNC_TYPE_MANUAL)
+        SyncForegroundService.startSyncForSingleFile(context, documentId = documentId)
+        return@withContext SyncForegroundService.syncResult
+    }
+
     /**
      * Get sync statistics
      */

@@ -104,6 +104,57 @@ class SyncManager(
 
     }
 
+    suspend fun syncSingleFileUsingDocumentId(documentId:String,account:GoogleSignInAccount):SyncResult = withContext(Dispatchers.IO){
+        if (!isNetworkAvailable()) {
+            Log.d(TAG, "No network available, skipping sync")
+            return@withContext SyncResult(
+                success = false,
+                message = "No network connection available",
+                syncedCount = 0,
+                failedCount = 0
+            )
+        }
+
+        val pendingFile = fileStoreDao.getSingleSyncFile(documentId =  documentId)
+        Log.d(TAG, "Starting sync for ${pendingFile.name} ${pendingFile.size}")
+
+        var syncedCount = 0
+        var failedCount = 0
+        val errors = mutableListOf<String>()
+
+        try {
+            val result = syncSingleFile(account, pendingFile,"TestFolder")
+            if (result) {
+                syncedCount++
+                Log.d(TAG, "Successfully synced: ${pendingFile.name}")
+            } else {
+                failedCount++
+                errors.add("Failed to sync: ${pendingFile.name}")
+                Log.e(TAG, "Failed to sync: ${pendingFile.name}")
+            }
+        } catch (e: Exception) {
+            failedCount++
+            val errorMsg = "Error syncing ${pendingFile.name}: ${e.message}"
+            errors.add(errorMsg)
+            Log.e(TAG, errorMsg, e)
+        }
+
+        val success = failedCount == 0
+        val message = if (success) {
+            "Successfully synced"
+        } else {
+            "Synced failed"
+        }
+
+        SyncResult(
+            success = success,
+            message = message,
+            syncedCount = syncedCount,
+            failedCount = failedCount,
+            errors = errors
+        )
+    }
+
     private suspend fun syncSingleFile(account: GoogleSignInAccount, fileInfo: FileInfo,folderName:String): Boolean = withContext(Dispatchers.IO) {
         try {
             // Update status to IN_PROGRESS
