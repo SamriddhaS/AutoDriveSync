@@ -256,6 +256,9 @@ class MainViewModel(
      * Scan the selected directory for files
      */
     fun scanSelectedDirectory() {
+
+        Log.d(TAG, "scanSelectedDirectory: ")
+
         if (!repository.hasSelectedDirectory()) {
             _uiState.update {
                 it.copy(
@@ -302,16 +305,16 @@ class MainViewModel(
 
             val syncResult = repository.startSync(currentAccount)
 
-            Log.d(TAG,syncResult.message?:"")
+            Log.d(TAG,syncResult?.message?:"")
 
             _uiState.update {
                 it.copy(
                     syncState = it.syncState.copy(
                         isSyncing = false,
-                        syncStatus = if (syncResult.success) {
+                        syncStatus = if (syncResult?.success == true) {
                             "Sync completed successfully! ${syncResult.syncedCount} files synced"
                         } else {
-                            "Sync completed with ${syncResult.failedCount} failures"
+                            "Sync completed with ${syncResult?.failedCount} failures"
                         },
                         lastSyncResult = syncResult,
                         lastSyncTime = System.currentTimeMillis()
@@ -347,10 +350,10 @@ class MainViewModel(
                 it.copy(
                     syncState = it.syncState.copy(
                         isSyncing = false,
-                        syncStatus = if (syncResult.success) {
-                            "Retry completed successfully! ${syncResult.syncedCount} files synced"
+                        syncStatus = if (syncResult?.success==true) {
+                            "Retry completed successfully! ${syncResult?.syncedCount} files synced"
                         } else {
-                            "Retry completed with ${syncResult.failedCount} failures"
+                            "Retry completed with ${syncResult?.failedCount} failures"
                         },
                         lastSyncResult = syncResult,
                         lastSyncTime = System.currentTimeMillis()

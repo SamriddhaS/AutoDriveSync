@@ -10,6 +10,7 @@ import com.example.autosyncdrive.data.models.SyncStats
 import com.example.autosyncdrive.data.models.SyncStatus
 import com.example.autosyncdrive.utils.GoogleDriveHelper
 import com.example.autosyncdrive.utils.StorageHelper
+import com.example.autosyncdrive.utils.SyncForegroundService
 import com.example.autosyncdrive.utils.SyncManager
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
@@ -139,17 +140,21 @@ class MainRepository(
     /**
      * Start manual sync of all pending files
      */
-    suspend fun startSync(account: GoogleSignInAccount): SyncResult = withContext(Dispatchers.IO) {
+    suspend fun startSync(account: GoogleSignInAccount): SyncResult? = withContext(Dispatchers.IO) {
         Log.d(TAG, "Starting manual sync")
-        return@withContext syncManager.syncPendingFiles(account)
+        //return@withContext syncManager.syncPendingFiles(account)
+        SyncForegroundService.startSync(context, SyncForegroundService.SYNC_TYPE_MANUAL)
+        return@withContext SyncForegroundService.syncResult
     }
 
     /**
      * Retry failed file uploads
      */
-    suspend fun retryFailedSync(account: GoogleSignInAccount): SyncResult = withContext(Dispatchers.IO) {
+    suspend fun retryFailedSync(account: GoogleSignInAccount): SyncResult? = withContext(Dispatchers.IO) {
         Log.d(TAG, "Retrying failed sync")
-        return@withContext syncManager.retryFailedFiles(account)
+        //return@withContext syncManager.retryFailedFiles(account)
+        SyncForegroundService.retryFailedSync(context)
+        return@withContext SyncForegroundService.syncResult
     }
 
     /**

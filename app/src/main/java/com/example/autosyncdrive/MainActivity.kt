@@ -17,19 +17,31 @@ import com.example.autosyncdrive.viewmodels.MainViewModel
 import com.example.autosyncdrive.ui.theme.AutoSyncDriveTheme
 
 class MainActivity : ComponentActivity() {
+
+    var viewModel: MainViewModel?=null
+
+    override fun onResume() {
+        super.onResume()
+
+        // AutoScan when activity gets in focus
+        viewModel?.let {
+            it.scanSelectedDirectory()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             AutoSyncDriveTheme {
 
-                val viewModel: MainViewModel = viewModel(
+                viewModel = viewModel(
                     factory = DIModule.provideGoogleDriveViewModelFactory(this@MainActivity)
                 )
 
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     AppNavHost(
-                        mainViewModel = viewModel,
+                        mainViewModel = viewModel!!,
                         context = this@MainActivity,
                         modifier=Modifier.padding(innerPadding)
                     )
