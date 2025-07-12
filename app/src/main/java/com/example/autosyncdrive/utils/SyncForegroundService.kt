@@ -98,11 +98,11 @@ class SyncForegroundService:Service() {
         notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         createNotificationChannel()
 
-        googleSignInAccount = GoogleSignIn.getLastSignedInAccount(this)
         fileStoreDao = DIModule.provideFileInfoDao(this)
-        googleDriveHelper = GoogleDriveHelper(this)
-        storageHelper = StorageHelper(this)
-        syncManager = SyncManager(this, fileStoreDao!!, googleDriveHelper!!)
+        googleDriveHelper = DIModule.provideGoogleDriveHelper(this)
+        storageHelper = DIModule.provideStorageHelper(this)
+        syncManager = DIModule.provideSyncManager(this)
+        googleSignInAccount = googleDriveHelper?.getGoogleDriveAccount()
 
         if (googleSignInAccount == null) {
             Log.e(TAG, "No signed-in account found")

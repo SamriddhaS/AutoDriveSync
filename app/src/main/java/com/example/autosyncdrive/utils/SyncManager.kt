@@ -16,6 +16,16 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.security.MessageDigest
 
+class SyncHelperFactory {
+    fun create(
+        applicationContext: Context,
+        fileStoreDao: FileStoreDao,
+        googleDriveHelper: GoogleDriveHelper
+        ): SyncManager {
+        return SyncManager(applicationContext,fileStoreDao,googleDriveHelper)
+    }
+}
+
 class SyncManager(
     private val context: Context,
     private val fileStoreDao: FileStoreDao,

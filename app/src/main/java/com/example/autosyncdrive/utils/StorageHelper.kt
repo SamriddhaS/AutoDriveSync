@@ -9,6 +9,15 @@ import com.example.autosyncdrive.data.models.FileInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
+
+
+// Factory for StorageHelper
+class StorageHelperFactory {
+    fun create(applicationContext: Context): StorageHelper {
+        return StorageHelper(applicationContext)
+    }
+}
+
 /**
  * Helper class to manage storage operations
  */

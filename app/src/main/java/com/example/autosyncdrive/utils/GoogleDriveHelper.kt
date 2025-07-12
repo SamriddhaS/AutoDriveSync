@@ -28,6 +28,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.*
 
+class GoogleDriveHelperFactory {
+    fun create(applicationContext: Context): GoogleDriveHelper {
+        return GoogleDriveHelper(applicationContext)
+    }
+}
+
 class GoogleDriveHelper(private val context: Context) {
     private val TAG = "GoogleDriveHelper"
 
@@ -40,6 +46,8 @@ class GoogleDriveHelper(private val context: Context) {
 
         GoogleSignIn.getClient(context, gso)
     }
+
+    fun getGoogleDriveAccount() = GoogleSignIn.getLastSignedInAccount(context)
 
     // Get sign-in intent
     fun getSignInIntent(): Intent {
