@@ -15,6 +15,7 @@ import com.example.autosyncdrive.R
 import com.example.autosyncdrive.data.localdb.FileStoreDao
 import com.example.autosyncdrive.data.models.SyncResult
 import com.example.autosyncdrive.data.models.SyncStats
+import com.example.autosyncdrive.data.models.SyncStatus
 import com.example.autosyncdrive.di.DIModule
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
@@ -22,7 +23,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 class SyncForegroundService:Service() {
     companion object {
@@ -75,7 +80,8 @@ class SyncForegroundService:Service() {
             context.startService(intent)
         }
 
-        var syncResult:SyncResult?=null
+        private val _syncResult = MutableStateFlow<SyncResult?>(null) // Or MutableSharedFlow
+        val syncResult: StateFlow<SyncResult?> = _syncResult.asStateFlow() // Or .asSharedFlow()
     }
 
     private lateinit var notificationManager: NotificationManager
@@ -189,7 +195,7 @@ class SyncForegroundService:Service() {
                     // Start the actual sync
                     syncManager?.syncPendingFiles(googleSignInAccount)?.let {
                         handleSyncResult(it, syncType)
-                        syncResult = it
+                        _syncResult.value = it
                     }
 
                 }catch (e: Exception) {
@@ -242,7 +248,7 @@ class SyncForegroundService:Service() {
                     // Start the actual sync
                     syncManager?.syncSingleFileUsingDocumentId(documentId,googleSignInAccount)?.let {
                         handleSyncResult(it, syncType)
-                        syncResult = it
+                        _syncResult.value = it
                     }
 
                 }catch (e: Exception) {
@@ -383,7 +389,6 @@ class SyncForegroundService:Service() {
             .setOngoing(false)
             .setAutoCancel(true)
             .setContentIntent(createContentIntent())
-            .addAction(createRetryAction())
             .build()
 
         notificationManager.notify(NOTIFICATION_ID, notification)
@@ -443,6 +448,19 @@ class SyncForegroundService:Service() {
         Log.d(TAG, "Stopping sync operation")
         currentSyncJob?.cancel()
         isSyncing = false
+
+        runBlocking(serviceScope.coroutineContext) {
+            val failedFiles = fileStoreDao?.getFilesByStatus(SyncStatus.IN_PROGRESS)
+            Log.d(TAG, "Reset in progress file : ${failedFiles?.size}")
+
+            // Reset failed files to pending
+            if (failedFiles != null) {
+                for (file in failedFiles) {
+                    fileStoreDao?.updateSyncStatus(file.documentId, SyncStatus.PENDING)
+                }
+            }
+        }
+
         stopSelf()
     }
 

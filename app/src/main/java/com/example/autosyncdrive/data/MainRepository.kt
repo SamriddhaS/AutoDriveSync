@@ -1,17 +1,15 @@
 package com.example.autosyncdrive.data
+
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
-import com.example.autosyncdrive.data.models.FileInfo
 import com.example.autosyncdrive.data.localdb.FileStoreDao
-import com.example.autosyncdrive.data.models.SyncResult
+import com.example.autosyncdrive.data.models.FileInfo
 import com.example.autosyncdrive.data.models.SyncStats
 import com.example.autosyncdrive.data.models.SyncStatus
 import com.example.autosyncdrive.utils.GoogleDriveHelper
 import com.example.autosyncdrive.utils.StorageHelper
-import com.example.autosyncdrive.utils.SyncForegroundService
-import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.tasks.Task
 import kotlinx.coroutines.Dispatchers
@@ -25,8 +23,8 @@ import kotlinx.coroutines.withContext
 class MainRepository(
     private val context: Context,
     private val fileStoreDao: FileStoreDao,
-    private val googleDriveHelper : GoogleDriveHelper,
-    private val storageHelper : StorageHelper
+    private val googleDriveHelper: GoogleDriveHelper,
+    private val storageHelper: StorageHelper
 ) {
 
     //private val syncManager = SyncManager(context, fileStoreDao, googleDriveHelper)
@@ -102,7 +100,7 @@ class MainRepository(
      * Scan/Refresh files from storage and update cache
      */
     suspend fun scanDirectory() = withContext(Dispatchers.IO) {
-        Log.d(TAG,"scanDirectory")
+        Log.d(TAG, "scanDirectory")
         try {
             val freshFiles = storageHelper.scanDirectory()
             updateFileCache(freshFiles)
@@ -135,38 +133,6 @@ class MainRepository(
         }
     }
 
-
-    /**
-     * Start manual sync of all pending files
-     */
-    suspend fun startSync(account: GoogleSignInAccount): SyncResult? = withContext(Dispatchers.IO) {
-        Log.d(TAG, "Starting manual sync")
-        //return@withContext syncManager.syncPendingFiles(account)
-        SyncForegroundService.startSync(context, SyncForegroundService.SYNC_TYPE_MANUAL)
-        return@withContext SyncForegroundService.syncResult
-    }
-
-    /**
-     * Retry failed file uploads
-     */
-    suspend fun retryFailedSync(account: GoogleSignInAccount): SyncResult? = withContext(Dispatchers.IO) {
-        Log.d(TAG, "Retrying failed sync")
-        //return@withContext syncManager.retryFailedFiles(account)
-        SyncForegroundService.retryFailedSync(context)
-        return@withContext SyncForegroundService.syncResult
-    }
-
-
-    /**
-     * Start manual sync of all pending files
-     */
-    suspend fun startSyncForSingleFile(documentId:String): SyncResult? = withContext(Dispatchers.IO) {
-        Log.d(TAG, "Starting manual sync")
-        //return@withContext syncManager.syncPendingFiles(account)
-        //SyncForegroundService.startSync(context, SyncForegroundService.SYNC_TYPE_MANUAL)
-        SyncForegroundService.startSyncForSingleFile(context, documentId = documentId)
-        return@withContext SyncForegroundService.syncResult
-    }
 
     /**
      * Get sync statistics

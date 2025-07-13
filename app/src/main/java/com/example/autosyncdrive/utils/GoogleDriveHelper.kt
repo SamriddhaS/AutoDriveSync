@@ -19,7 +19,6 @@ import com.google.api.client.extensions.android.http.AndroidHttp
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
 import com.google.api.client.googleapis.extensions.android.gms.auth.UserRecoverableAuthIOException
 import com.google.api.client.googleapis.json.GoogleJsonResponseException
-import com.google.api.client.http.FileContent
 import com.google.api.client.http.InputStreamContent
 import com.google.api.client.json.gson.GsonFactory
 import com.google.api.services.drive.Drive

@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.autosyncdrive.controllers.SyncServiceController
 import com.example.autosyncdrive.data.MainRepository
 import com.example.autosyncdrive.data.models.FileInfo
 import com.example.autosyncdrive.data.models.SyncStats
@@ -19,8 +20,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class MainViewModel(
-    private val repository: MainRepository
-):ViewModel() {
+    private val repository: MainRepository,
+    private val syncServiceController: SyncServiceController
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MainUiState())
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
@@ -105,6 +107,25 @@ class MainViewModel(
         if (repository.hasSelectedDirectory()) {
             scanSelectedDirectory()
         }
+
+        viewModelScope.launch {
+            syncServiceController.observeSyncResult().collect { syncResult ->
+                _uiState.update {
+                    it.copy(
+                        syncState = it.syncState.copy(
+                            isSyncing = false,
+                            syncStatus = if (syncResult.success == true) {
+                                "Sync completed successfully! ${syncResult.syncedCount} files synced"
+                            } else {
+                                "Sync completed with ${syncResult.failedCount} failures"
+                            },
+                            lastSyncResult = syncResult,
+                            lastSyncTime = System.currentTimeMillis()
+                        )
+                    )
+                }
+            }
+        }
     }
 
     private fun checkSignInStatus() {
@@ -152,7 +173,10 @@ class MainViewModel(
                 )
             }
 
-            val task = com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(data)
+            val task =
+                com.google.android.gms.auth.api.signin.GoogleSignIn.getSignedInAccountFromIntent(
+                    data
+                )
             val account = repository.handleSignInResult(task)
 
             if (account != null) {
@@ -290,7 +314,6 @@ class MainViewModel(
      * Start syncing all pending files to Google Drive
      */
     fun startSync() {
-        val currentAccount = _uiState.value.googleDriveState.account ?: return
 
         viewModelScope.launch {
             _uiState.update {
@@ -303,24 +326,7 @@ class MainViewModel(
                 )
             }
 
-            val syncResult = repository.startSync(currentAccount)
-
-            Log.d(TAG,syncResult?.message?:"")
-
-            _uiState.update {
-                it.copy(
-                    syncState = it.syncState.copy(
-                        isSyncing = false,
-                        syncStatus = if (syncResult?.success == true) {
-                            "Sync completed successfully! ${syncResult.syncedCount} files synced"
-                        } else {
-                            "Sync completed with ${syncResult?.failedCount} failures"
-                        },
-                        lastSyncResult = syncResult,
-                        lastSyncTime = System.currentTimeMillis()
-                    )
-                )
-            }
+            syncServiceController.startSync()
 
             // Refresh sync stats
             refreshSyncStats()
@@ -328,10 +334,27 @@ class MainViewModel(
     }
 
     /**
+     * Stop ongoing sync operation
+     */
+    fun stopSync() {
+        syncServiceController
+            .stopSync()
+
+        _uiState.update {
+            it.copy(
+                syncState = it.syncState.copy(
+                    isSyncing = false,
+                    syncStatus = "Sync stopped",
+                    error = null
+                )
+            )
+        }
+    }
+
+    /**
      * Retry syncing failed files
      */
     fun retryFailedSync() {
-        val currentAccount = _uiState.value.googleDriveState.account ?: return
 
         viewModelScope.launch {
             _uiState.update {
@@ -344,29 +367,14 @@ class MainViewModel(
                 )
             }
 
-            val syncResult = repository.retryFailedSync(currentAccount)
-
-            _uiState.update {
-                it.copy(
-                    syncState = it.syncState.copy(
-                        isSyncing = false,
-                        syncStatus = if (syncResult?.success==true) {
-                            "Retry completed successfully! ${syncResult?.syncedCount} files synced"
-                        } else {
-                            "Retry completed with ${syncResult?.failedCount} failures"
-                        },
-                        lastSyncResult = syncResult,
-                        lastSyncTime = System.currentTimeMillis()
-                    )
-                )
-            }
+            syncServiceController.retryFailedSync()
 
             // Refresh sync stats
             refreshSyncStats()
         }
     }
 
-    fun syncSingleFile(fileInfo: FileInfo){
+    fun syncSingleFile(fileInfo: FileInfo) {
         resetFileToSync(fileInfo)
         viewModelScope.launch {
             _uiState.update {
@@ -379,24 +387,7 @@ class MainViewModel(
                 )
             }
 
-            val syncResult = repository.startSyncForSingleFile(fileInfo.documentId)
-
-            Log.d(TAG,syncResult?.message?:"")
-
-            _uiState.update {
-                it.copy(
-                    syncState = it.syncState.copy(
-                        isSyncing = false,
-                        syncStatus = if (syncResult?.success == true) {
-                            "Sync completed successfully! ${syncResult.syncedCount} files synced"
-                        } else {
-                            "Sync completed with ${syncResult?.failedCount} failures"
-                        },
-                        lastSyncResult = syncResult,
-                        lastSyncTime = System.currentTimeMillis()
-                    )
-                )
-            }
+            syncServiceController.startSyncForSingleFile(fileInfo.documentId)
 
             // Refresh sync stats
             refreshSyncStats()
@@ -534,12 +525,13 @@ data class SyncUiState(
 )
 
 class MainViewModelFactory(
-    private val repository: MainRepository
+    private val repository: MainRepository,
+    private val syncServiceController: SyncServiceController
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
-            return MainViewModel(repository) as T
+            return MainViewModel(repository, syncServiceController) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

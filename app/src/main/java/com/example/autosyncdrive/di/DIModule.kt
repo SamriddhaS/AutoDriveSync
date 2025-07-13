@@ -1,6 +1,8 @@
 package com.example.autosyncdrive.di
 
 import android.content.Context
+import com.example.autosyncdrive.controllers.SyncServiceController
+import com.example.autosyncdrive.controllers.SyncServiceControllerImpl
 import com.example.autosyncdrive.data.MainRepository
 import com.example.autosyncdrive.data.localdb.FileStorageDb
 import com.example.autosyncdrive.utils.GoogleDriveHelper
@@ -72,9 +74,13 @@ object DIModule {
         }
     }
 
+    fun provideSyncServiceController(context: Context): SyncServiceController {
+        return SyncServiceControllerImpl(context)
+    }
+
     // Get Google Drive ViewModel Factory
     fun provideGoogleDriveViewModelFactory(context: Context): MainViewModelFactory {
-        return MainViewModelFactory(provideMainRepository(context))
+        return MainViewModelFactory(provideMainRepository(context), provideSyncServiceController(context))
     }
 
 
