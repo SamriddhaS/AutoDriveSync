@@ -47,7 +47,7 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
-            excludes += "META-INF/DEPENDENCIES" //TODO : 2 files found with path 'META-INF/DEPENDENCIES' from inputs error without this
+            excludes += "META-INF/DEPENDENCIES"
         }
     }
     room {

@@ -1,4 +1,4 @@
-package com.example.autosyncdrive.navigation
+package com.example.autosyncdrive.presentation.navigation
 
 import android.content.Context
 import androidx.compose.runtime.Composable
@@ -7,8 +7,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.autosyncdrive.ui.screens.HomeScreen
-import com.example.autosyncdrive.viewmodels.MainViewModel
+import com.example.autosyncdrive.presentation.screens.HomeScreen
+import com.example.autosyncdrive.presentation.viewmodels.MainViewModel
 
 object Routes{
     const val HOME_SCREEN = "home_screen"

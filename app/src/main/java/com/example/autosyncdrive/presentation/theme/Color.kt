@@ -1,4 +1,4 @@
-package com.example.autosyncdrive.ui.theme
+package com.example.autosyncdrive.presentation.theme
 
 import androidx.compose.ui.graphics.Color
 

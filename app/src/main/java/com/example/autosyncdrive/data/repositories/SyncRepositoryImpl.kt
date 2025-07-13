@@ -1,4 +1,4 @@
-package com.example.autosyncdrive.data
+package com.example.autosyncdrive.data.repositories
 
 import android.content.Context
 import android.content.Intent
@@ -20,31 +20,31 @@ import kotlinx.coroutines.withContext
 /**
  * Repository to handle Google Drive operations
  */
-class MainRepository(
+class SyncRepositoryImpl(
     private val context: Context,
     private val fileStoreDao: FileStoreDao,
     private val googleDriveHelper: GoogleDriveHelper,
     private val storageHelper: StorageHelper
-) {
+):SyncRepository {
 
     //private val syncManager = SyncManager(context, fileStoreDao, googleDriveHelper)
     private val TAG = "MainRepository"
 
     // Get sign-in intent
-    fun getSignInIntent() = googleDriveHelper.getSignInIntent()
+    override fun getSignInIntent() = googleDriveHelper.getSignInIntent()
 
     // Check if user is already signed in
-    fun getLastSignedInAccount(): GoogleSignInAccount? {
+    override fun getLastSignedInAccount(): GoogleSignInAccount? {
         return googleDriveHelper.getGoogleDriveAccount()
     }
 
     // Handle sign-in result
-    fun handleSignInResult(task: Task<GoogleSignInAccount>): GoogleSignInAccount? {
+    override fun handleSignInResult(task: Task<GoogleSignInAccount>): GoogleSignInAccount? {
         return googleDriveHelper.handleSignInResult(task)
     }
 
     // Sign out
-    fun signOut() {
+    override fun signOut() {
         googleDriveHelper.googleSignInClient.signOut()
     }
 
@@ -54,28 +54,28 @@ class MainRepository(
     /**
      * Create directory picker intent
      */
-    fun getDirectoryPickerIntent(): Intent {
+    override fun getDirectoryPickerIntent(): Intent {
         return storageHelper.createDirectoryPickerIntent()
     }
 
     /**
      * Process the result from directory picker
      */
-    fun processDirectorySelection(uri: Uri?): Boolean {
+    override fun processDirectorySelection(uri: Uri?): Boolean {
         return storageHelper.processDirectorySelection(uri)
     }
 
     /**
      * Check if a directory has been selected
      */
-    fun hasSelectedDirectory(): Boolean {
+    override fun hasSelectedDirectory(): Boolean {
         return storageHelper.getSelectedDirectoryUri() != null
     }
 
     /**
      * Get the URI of the selected directory
      */
-    fun getSelectedDirectoryUri(): Uri? {
+    override fun getSelectedDirectoryUri(): Uri? {
         return storageHelper.getSelectedDirectoryUri()
     }
 
@@ -91,7 +91,7 @@ class MainRepository(
      * Alternative implementation using Room's Flow support
      * This will automatically update the UI whenever the database changes
      */
-    fun observeFiles(): Flow<List<FileInfo>> {
+    override fun observeFiles(): Flow<List<FileInfo>> {
         return fileStoreDao.getAllFiles()
             .flowOn(Dispatchers.IO)
     }
@@ -99,7 +99,7 @@ class MainRepository(
     /**
      * Scan/Refresh files from storage and update cache
      */
-    suspend fun scanDirectory() = withContext(Dispatchers.IO) {
+    override suspend fun scanDirectory():Unit = withContext(Dispatchers.IO) {
         Log.d(TAG, "scanDirectory")
         try {
             val freshFiles = storageHelper.scanDirectory()
@@ -124,7 +124,7 @@ class MainRepository(
     /**
      * Clear the file cache
      */
-    fun clearFileCache() {
+    override fun clearFileCache() {
         kotlinx.coroutines.runBlocking {
             withContext(Dispatchers.IO) {
                 fileStoreDao.deleteAllFiles()
@@ -137,7 +137,7 @@ class MainRepository(
     /**
      * Get sync statistics
      */
-    suspend fun getSyncStats(): SyncStats = withContext(Dispatchers.IO) {
+    override suspend fun getSyncStats(): SyncStats = withContext(Dispatchers.IO) {
         SyncStats(
             totalFiles = fileStoreDao.getFileCount(),
             pendingFiles = fileStoreDao.getPendingFileCount(),
@@ -149,28 +149,28 @@ class MainRepository(
     /**
      * Observe sync queue
      */
-    fun observeSyncQueue(): Flow<List<FileInfo>> {
+    override fun observeSyncQueue(): Flow<List<FileInfo>> {
         return fileStoreDao.observeSyncQueue()
     }
 
     /**
      * Observe synced files
      */
-    fun observeSyncedFiles(): Flow<List<FileInfo>> {
+    override fun observeSyncedFiles(): Flow<List<FileInfo>> {
         return fileStoreDao.observeSyncedFiles()
     }
 
     /**
      * Observe failed files
      */
-    fun observeFailedFiles(): Flow<List<FileInfo>> {
+    override fun observeFailedFiles(): Flow<List<FileInfo>> {
         return fileStoreDao.observeFailedFiles()
     }
 
     /**
      * Get files by specific sync status
      */
-    suspend fun getFilesByStatus(status: SyncStatus): List<FileInfo> = withContext(Dispatchers.IO) {
+    override suspend fun getFilesByStatus(status: SyncStatus): List<FileInfo> = withContext(Dispatchers.IO) {
         return@withContext fileStoreDao.getFilesByStatus(status)
     }
 
@@ -178,7 +178,7 @@ class MainRepository(
      * Manually reset a file's sync status to pending
      * Useful for re-syncing specific files
      */
-    suspend fun resetFileToSync(fileInfo: FileInfo) = withContext(Dispatchers.IO) {
+    override suspend fun resetFileToSync(fileInfo: FileInfo): Unit = withContext(Dispatchers.IO) {
         fileStoreDao.updateSyncStatus(fileInfo.documentId, SyncStatus.PENDING)
         Log.d(TAG, "Reset file to sync: ${fileInfo.name}")
     }

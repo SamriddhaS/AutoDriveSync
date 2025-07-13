@@ -1,4 +1,4 @@
-package com.example.autosyncdrive.ui.screens
+package com.example.autosyncdrive.presentation.screens
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -38,10 +38,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.autosyncdrive.data.models.FileInfo
 import com.example.autosyncdrive.data.models.SyncStatus
+import com.example.autosyncdrive.presentation.viewmodels.GoogleDriveUiState
 import com.example.autosyncdrive.utils.PermissionHandler
 import com.example.autosyncdrive.utils.RequestStoragePermission
-import com.example.autosyncdrive.viewmodels.MainViewModel
-import com.example.autosyncdrive.viewmodels.SyncUiState
+import com.example.autosyncdrive.presentation.viewmodels.MainViewModel
+import com.example.autosyncdrive.presentation.viewmodels.StorageUiState
+import com.example.autosyncdrive.presentation.viewmodels.SyncUiState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -117,7 +119,7 @@ fun HomeScreen(
 
 @Composable
 fun GoogleDriveTab(
-    uiState: com.example.autosyncdrive.viewmodels.GoogleDriveUiState,
+    uiState: GoogleDriveUiState,
     onSignInClick: () -> Unit,
     onSignOutClick: () -> Unit,
     onUploadClick: () -> Unit,
@@ -193,7 +195,7 @@ fun GoogleDriveTab(
 
 @Composable
 fun LocalStorageTab(
-    uiState: com.example.autosyncdrive.viewmodels.StorageUiState,
+    uiState: StorageUiState,
     syncUiState: SyncUiState,
     onSelectDirectoryClick: () -> Unit,
     onScanClick: () -> Unit,

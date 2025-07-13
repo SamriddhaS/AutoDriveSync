@@ -1,4 +1,4 @@
-package com.example.autosyncdrive.viewmodels
+package com.example.autosyncdrive.presentation.viewmodels
 
 import android.app.Activity
 import android.content.Intent
@@ -8,10 +8,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.autosyncdrive.controllers.SyncServiceController
-import com.example.autosyncdrive.data.MainRepository
 import com.example.autosyncdrive.data.models.FileInfo
 import com.example.autosyncdrive.data.models.SyncStats
 import com.example.autosyncdrive.data.models.SyncStatus
+import com.example.autosyncdrive.data.repositories.SyncRepository
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class MainViewModel(
-    private val repository: MainRepository,
+    private val repository: SyncRepository,
     private val syncServiceController: SyncServiceController
 ) : ViewModel() {
 
@@ -525,7 +525,7 @@ data class SyncUiState(
 )
 
 class MainViewModelFactory(
-    private val repository: MainRepository,
+    private val repository: SyncRepository,
     private val syncServiceController: SyncServiceController
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
